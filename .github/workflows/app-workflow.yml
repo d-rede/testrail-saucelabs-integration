@@ -24,3 +24,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying app"
+  e2e_tests:
+    name: E2E tests
+    needs: deploy_app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Execute Cypress tests
+        run: |
+          npm install -g saucectl
+          export SAUCE_USERNAME="${{ vars.SAUCE_USERNAME }}"
+          export SAUCE_ACCESS_KEY="${{ secrets.SAUCE_ACCESS_KEY }}"
+          saucectl run --build "[v${{ env.VERSION }}.${{ github.run_number }}] Cypress automated tests"
+      - name: Archive test artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-artifacts
+          path: saucectl-junit-report.xml
+      - name: Setup Python
+        if: always()
+        uses: actions/setup-python@v4.5.0
+        with:
+          python-version: '3.x'
+      - name: Execute TestRail CLI to upload results
+        if: always()
+        run: |
+          pip install trcli
+          trcli -y \
+            -h "https://marketing80testing.testrail-staging.com/" \
+            --project "Sauce Labs Tests" \
+            -u "${{ vars.TESTRAIL_USERNAME }}" \
+            -p "${{ secrets.TESTRAIL_API_KEY }}" \
+            parse_junit \
+            -f "saucectl-junit-report.xml" \
+            --special-parser "saucectl" \
+            --title "[v${{ env.VERSION }}.${{ github.run_number }}] Cypress automated tests" \
+            --run-description "Pipeline: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
