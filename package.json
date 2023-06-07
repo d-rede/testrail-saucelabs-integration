@@ -1,0 +1,8 @@
+{
+  "name": "cypress-tests",
+  "version": "1.0.0",
+  "description": "Sample Cypress tests project",
+  "devDependencies": {
+    "cypress": "12.13.0"
+  }
+}
