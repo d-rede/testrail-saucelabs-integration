@@ -24,3 +24,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "Deploying app"
+  e2e_tests:
+    name: E2E tests
+    needs: deploy_app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
+      - name: Execute Cypress tests
+        run: |
+          npm install
+          npx cypress run
+      - name: Archive test artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-artifacts
+          path: |
+            cypress/videos
+            cypress/screenshots
